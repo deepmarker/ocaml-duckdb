@@ -1,0 +1,4 @@
+(executable
+ (public_name duckdb)
+ (name main)
+ (libraries duckdb))
