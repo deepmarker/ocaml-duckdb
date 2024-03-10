@@ -28,8 +28,20 @@ static struct custom_operations connection_ops = {
   custom_fixed_length_default
 };
 
+static struct custom_operations appender_ops = {
+  "duckdb.appender",
+  custom_finalize_default,
+  custom_compare_default,
+  custom_hash_default,
+  custom_serialize_default,
+  custom_deserialize_default,
+  custom_compare_ext_default,
+  custom_fixed_length_default
+};
+
 #define Database_val(v) (((duckdb_database *) Data_custom_val(v)))
 #define Connection_val(v) (((duckdb_connection *) Data_custom_val(v)))
+#define Appender_val(v) (((duckdb_appender *) Data_custom_val(v)))
 
 CAMLprim value ml_duckdb_library_version(value unit) {
     CAMLparam1(unit);
@@ -95,4 +107,48 @@ CAMLprim value ml_duckdb_exec(value con, value query) {
     if (ret == DuckDBError)
         caml_failwith(duckdb_result_error(&res));
     CAMLreturn(Val_unit);
+}
+
+CAMLprim value ml_duckdb_appender_create (value con, value tbl) {
+    CAMLparam2(con, tbl);
+    CAMLlocal1(x);
+    x = caml_alloc_custom(&appender_ops,
+                          sizeof (duckdb_appender),
+                          0, 1);
+    if (duckdb_appender_create(*Connection_val(con),
+                               NULL,
+                               String_val(tbl),
+                               Appender_val(x)) == DuckDBError) {
+        caml_failwith("cannot create appender");
+    }
+    CAMLreturn(x);
+}
+
+CAMLprim value ml_duckdb_appender_destroy(value appender) {
+    return Val_int(duckdb_appender_destroy(Appender_val(appender)));
+}
+
+CAMLprim value ml_duckdb_appender_end_row(value appender) {
+    return Val_int(duckdb_appender_end_row(*Appender_val(appender)));
+}
+
+CAMLprim value ml_duckdb_append_int8(value appender, value i8) {
+    return Val_int(duckdb_append_int8(*Appender_val(appender), Int_val(i8)));
+}
+
+CAMLprim value ml_duckdb_append_int(value appender, value i) {
+    return Val_int(duckdb_append_int64(*Appender_val(appender), Long_val(i)));
+}
+
+CAMLprim value ml_duckdb_append_int32(value appender, value i32) {
+    return Val_int(duckdb_append_int32(*Appender_val(appender), Int32_val(i32)));
+}
+
+CAMLprim value ml_duckdb_append_int64(value appender, value i64) {
+    return Val_int(duckdb_append_int64(*Appender_val(appender), Int64_val(i64)));
+}
+
+CAMLprim value ml_duckdb_append_timestamp(value appender, value i) {
+    duckdb_timestamp ts = { Int_val(i) };
+    return Val_int(duckdb_append_timestamp(*Appender_val(appender), ts));
 }
