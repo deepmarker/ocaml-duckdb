@@ -69,8 +69,8 @@ CAMLprim value ml_duckdb_open_ext (value path, value cfg, value len) {
         duckdb_open_ext(NULL, Database_val(x), config, &err);
     duckdb_destroy_config(&config);
     if (ret == DuckDBError) {
-        char *buf = malloc(4096);
-        strncpy(buf, err, 4096);
+        char *buf = malloc(strlen(err));
+        strncpy(buf, err, strlen(err));
         duckdb_free(err);
         caml_failwith(buf);
     }
@@ -109,14 +109,14 @@ CAMLprim value ml_duckdb_exec(value con, value query) {
     CAMLreturn(Val_unit);
 }
 
-CAMLprim value ml_duckdb_appender_create (value con, value tbl) {
+CAMLprim value ml_duckdb_appender_create (value con, value sch, value tbl) {
     CAMLparam2(con, tbl);
     CAMLlocal1(x);
     x = caml_alloc_custom(&appender_ops,
                           sizeof (duckdb_appender),
                           0, 1);
     if (duckdb_appender_create(*Connection_val(con),
-                               NULL,
+                               caml_string_length(sch) > 0 ? String_val(sch) : NULL,
                                String_val(tbl),
                                Appender_val(x)) == DuckDBError) {
         caml_failwith("cannot create appender");
