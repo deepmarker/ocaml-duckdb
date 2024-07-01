@@ -1,2 +1,8 @@
 (test
- (name duckdb))
+ (name duckdb)
+ (libraries
+   core
+   alcotest
+   duckdb
+ )
+)
