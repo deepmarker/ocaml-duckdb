@@ -2,6 +2,7 @@
  (name duckdb)
  (libraries
    core
+   bigdecimal
    alcotest
    duckdb
  )

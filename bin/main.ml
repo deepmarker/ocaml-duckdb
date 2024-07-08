@@ -10,10 +10,13 @@ let scrooge path =
   let db = open_ ~cfg () in
   let con = connect db in
   (* Format.kasprintf (exec con) "LOAD '%s'" Sys.argv.(1); *)
-  queryf con {| CREATE OR REPLACE TABLE trade AS SELECT * FROM read_parquet('%s')|} path;
-  query
-    con
-    {|
+  let _ =
+    queryf con {| CREATE OR REPLACE TABLE trade AS SELECT * FROM read_parquet('%s')|} path
+  in
+  let _ =
+    query
+      con
+      {|
 SELECT TIMEBUCKET(lts,'10S'::INTERVAL) ts,
        FIRST_S(px, lts) o,
        MAX(px) h,
@@ -24,7 +27,8 @@ SELECT TIMEBUCKET(lts,'10S'::INTERVAL) ts,
   FROM trade
  WHERE FLAG = 'e'
  GROUP BY ts
-|};
+|}
+  in
   disconnect con;
   close db;
   print_endline (Lazy.force version)

@@ -73,12 +73,24 @@ static struct custom_operations vector_ops = {
   custom_fixed_length_default
 };
 
+static struct custom_operations result_ops = {
+  "duckdb.result",
+  custom_finalize_default,
+  custom_compare_default,
+  custom_hash_default,
+  custom_serialize_default,
+  custom_deserialize_default,
+  custom_compare_ext_default,
+  custom_fixed_length_default
+};
+
 #define Database_val(v) (((duckdb_database *) Data_custom_val(v)))
 #define Connection_val(v) (((duckdb_connection *) Data_custom_val(v)))
 #define Appender_val(v) (((duckdb_appender *) Data_custom_val(v)))
 #define Logical_type_val(v) (((duckdb_logical_type *) Data_custom_val(v)))
 #define Data_chunk_val(v) (((duckdb_data_chunk *) Data_custom_val(v)))
 #define Vector_val(v) (((duckdb_vector *) Data_custom_val(v)))
+#define Result_val(v) (((duckdb_result *) Data_custom_val(v)))
 
 CAMLprim value ml_duckdb_library_version(value unit) {
     CAMLparam1(unit);
@@ -143,12 +155,40 @@ CAMLprim value ml_duckdb_close(value db) {
 
 CAMLprim value ml_duckdb_query(value con, value query) {
     CAMLparam2(con, query);
-    duckdb_result res;
-    duckdb_state ret = duckdb_query(*Connection_val(con), String_val(query), &res);
+    CAMLlocal1(result);
+    result = caml_alloc_custom(&result_ops,
+                               sizeof (duckdb_result),
+                               0, 1);
+    duckdb_state ret = duckdb_query(*Connection_val(con), String_val(query), Result_val(result));
     if (ret == DuckDBError)
-        caml_failwith(duckdb_result_error(&res));
-    CAMLreturn(Val_unit);
+        caml_failwith(duckdb_result_error(Result_val(result)));
+    CAMLreturn(result);
 }
+
+/* result functions */
+
+CAMLprim value ml_duckdb_rows_changed(value res) {
+    return Val_int(duckdb_rows_changed(Result_val(res)));
+}
+
+CAMLprim value ml_duckdb_result_chunk_count(value res) {
+    return Val_int(duckdb_result_chunk_count(*Result_val(res)));
+}
+
+CAMLprim value ml_duckdb_result_get_chunk(value res, value idx) {
+    CAMLparam2(res, idx);
+    CAMLlocal1(chunk);
+    chunk = caml_alloc_custom(&data_chunk_ops,
+                              sizeof (duckdb_data_chunk),
+                              0, 1);
+    *Data_chunk_val(chunk) = duckdb_result_get_chunk(*Result_val(res), Int_val(idx));
+    if (*Data_chunk_val(chunk) == NULL) {
+        caml_failwith("duckdb_result_get_chunk: index out of bounds");
+    }
+    CAMLreturn(chunk);
+}
+
+/* appender functions */
 
 CAMLprim value ml_duckdb_appender_create (value con, value sch, value tbl) {
     CAMLparam2(con, tbl);
@@ -280,12 +320,19 @@ CAMLprim value ml_duckdb_data_chunk_get_vector(value dc, value idx) {
     x = caml_alloc_custom(&vector_ops,
                           sizeof (duckdb_vector),
                           0, 1);
+    // returns a null pointer if dc is null or index out of bounds
     *Vector_val(x) = duckdb_data_chunk_get_vector(*Data_chunk_val(dc), Int_val(idx));
+    if (*Vector_val(x) == NULL)
+        caml_failwith("get_vector: array index out of bounds");
     CAMLreturn(x);
 }
 
 CAMLprim value ml_duckdb_data_chunk_get_size(value dc) {
     return Val_int(duckdb_data_chunk_get_size(*Data_chunk_val(dc)));
+}
+
+CAMLprim value ml_duckdb_data_chunk_get_column_count(value dc) {
+    return Val_int(duckdb_data_chunk_get_column_count(*Data_chunk_val(dc)));
 }
 
 CAMLprim value ml_duckdb_data_chunk_set_size(value dc, value len) {
@@ -296,15 +343,25 @@ CAMLprim value ml_duckdb_data_chunk_set_size(value dc, value len) {
 /* Vector interface */
 
 CAMLprim value ml_duckdb_vector_get_data(value vect, value typ) {
-    CAMLparam1(vect);
+    CAMLparam2(vect, typ);
     CAMLlocal1(arr);
     void *data = duckdb_vector_get_data(*Vector_val(vect));
     arr = caml_ba_alloc_dims(Int_val(typ)|CAML_BA_C_LAYOUT, 1, data, duckdb_vector_size());
     CAMLreturn(arr);
 }
 
-CAMLprim value ml_duckdb_vector_get_validity(value vect, value typ) {
+CAMLprim value ml_duckdb_array_vector_get_child(value vect) {
     CAMLparam1(vect);
+    CAMLlocal1(chld);
+    chld = caml_alloc_custom(&vector_ops,
+                             sizeof (duckdb_vector),
+                             0, 1);
+    *Vector_val(chld) = duckdb_array_vector_get_child(*Vector_val(vect));
+    CAMLreturn(chld);
+}
+
+CAMLprim value ml_duckdb_vector_get_validity(value vect, value typ) {
+    CAMLparam2(vect, typ);
     CAMLlocal1(arr);
     duckdb_vector_ensure_validity_writable(*Vector_val(vect));
     uint64_t *validity = duckdb_vector_get_validity(*Vector_val(vect));
