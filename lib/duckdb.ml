@@ -364,6 +364,7 @@ module Appender = struct
 
     external get_error : t -> string = "ml_duckdb_appender_error"
     external create : con -> string -> string -> t = "ml_duckdb_appender_create"
+    external flush : t -> unit = "ml_duckdb_appender_flush"
     external free : t -> unit = "ml_duckdb_appender_destroy"
 
     external append_chunk
@@ -376,6 +377,7 @@ module Appender = struct
 
   type 'a t = Binding.t
 
+  let flush = Binding.flush
   let free = Binding.free
 
   let raise_if_error1 f t x =

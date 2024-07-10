@@ -117,6 +117,7 @@ module Appender : sig
   type 'a t
 
   val create : ?schema:string -> con -> table:string -> 'a Prod.t -> 'a t
+  val flush : _ t -> unit
 
   (** [free t] finishes appending and flush all the rows to the
       table, then frees [t] memory. *)

@@ -205,18 +205,27 @@ CAMLprim value ml_duckdb_appender_create (value con, value sch, value tbl) {
                                caml_string_length(sch) > 0 ? String_val(sch) : NULL,
                                String_val(tbl),
                                Appender_val(x)) == DuckDBError) {
-        const char *err = duckdb_appender_error(*Appender_val(x));
-        caml_failwith(err);
+        caml_failwith(duckdb_appender_error(*Appender_val(x)));
     }
     CAMLreturn(x);
 }
 
+CAMLprim value ml_duckdb_appender_flush(value appender) {
+    CAMLparam1(appender);
+    if (duckdb_appender_flush(*Appender_val(appender)) == DuckDBError) {
+        caml_failwith(duckdb_appender_error(*Appender_val(appender)));
+    }
+    CAMLreturn(Val_unit);
+}
+
 CAMLprim value ml_duckdb_appender_destroy(value appender) {
     CAMLparam1(appender);
-    if (duckdb_appender_destroy(Appender_val(appender)) == DuckDBError) {
-        const char *err = duckdb_appender_error(*Appender_val(appender));
-        caml_failwith(err);
+    if (duckdb_appender_close(*Appender_val(appender)) == DuckDBError) {
+        const char *msg = duckdb_appender_error(*Appender_val(appender));
+        duckdb_appender_destroy(Appender_val(appender));
+        caml_failwith(msg);
     }
+    duckdb_appender_destroy(Appender_val(appender));
     CAMLreturn(Val_unit);
 }
 
