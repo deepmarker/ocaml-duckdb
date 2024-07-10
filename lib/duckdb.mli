@@ -28,6 +28,7 @@ module type Representable = sig
 end
 
 module Repr : sig
+  val char : (module Representable with type t = char and type repr = int)
   val bool : (module Representable with type t = bool and type repr = int)
   val int : (module Representable with type t = int and type repr = int)
   val int32 : (module Representable with type t = int32 and type repr = int32)

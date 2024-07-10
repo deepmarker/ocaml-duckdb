@@ -67,6 +67,18 @@ module type Representable = sig
 end
 
 module Repr = struct
+  module Char = struct
+    include Char
+
+    type repr = int
+
+    let logical = LogicalType.Repr.scalar UTINYINT
+    let to_repr = Char.code
+    let of_repr = Char.chr
+  end
+
+  let char = (module Char : Representable with type t = char and type repr = int)
+
   module Bool = struct
     include Bool
 
