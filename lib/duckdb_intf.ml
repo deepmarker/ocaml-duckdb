@@ -1,4 +1,4 @@
-type scalar =
+type typ =
   | INVALID
   | BOOLEAN
   | TINYINT

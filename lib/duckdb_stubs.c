@@ -7,6 +7,14 @@
 #include <caml/bigarray.h>
 #include <duckdb.h>
 
+#define Database_val(v) (((duckdb_database *) Data_custom_val(v)))
+#define Connection_val(v) (((duckdb_connection *) Data_custom_val(v)))
+#define Appender_val(v) (((duckdb_appender *) Data_custom_val(v)))
+#define Logical_type_val(v) (((duckdb_logical_type *) Data_custom_val(v)))
+#define Data_chunk_val(v) (((duckdb_data_chunk *) Data_custom_val(v)))
+#define Vector_val(v) (((duckdb_vector *) Data_custom_val(v)))
+#define Result_val(v) (((duckdb_result *) Data_custom_val(v)))
+
 static struct custom_operations database_ops = {
   "duckdb.database",
   custom_finalize_default,
@@ -62,11 +70,15 @@ static struct custom_operations data_chunk_ops = {
   custom_fixed_length_default
 };
 
+intnat hash_duckdb_vector(value v) {
+    return (intnat)Vector_val(v);
+}
+
 static struct custom_operations vector_ops = {
   "duckdb.vector",
   custom_finalize_default,
   custom_compare_default,
-  custom_hash_default,
+  hash_duckdb_vector,
   custom_serialize_default,
   custom_deserialize_default,
   custom_compare_ext_default,
@@ -84,13 +96,6 @@ static struct custom_operations result_ops = {
   custom_fixed_length_default
 };
 
-#define Database_val(v) (((duckdb_database *) Data_custom_val(v)))
-#define Connection_val(v) (((duckdb_connection *) Data_custom_val(v)))
-#define Appender_val(v) (((duckdb_appender *) Data_custom_val(v)))
-#define Logical_type_val(v) (((duckdb_logical_type *) Data_custom_val(v)))
-#define Data_chunk_val(v) (((duckdb_data_chunk *) Data_custom_val(v)))
-#define Vector_val(v) (((duckdb_vector *) Data_custom_val(v)))
-#define Result_val(v) (((duckdb_result *) Data_custom_val(v)))
 
 CAMLprim value ml_duckdb_library_version(value unit) {
     CAMLparam1(unit);
@@ -342,11 +347,12 @@ CAMLprim value ml_duckdb_data_chunk_set_size(value dc, value len) {
 
 /* Vector interface */
 
-CAMLprim value ml_duckdb_vector_get_data(value vect, value typ) {
-    CAMLparam2(vect, typ);
+CAMLprim value ml_duckdb_vector_get_data(value vect, value typ, value len) {
+    CAMLparam3(vect, typ, len);
     CAMLlocal1(arr);
+    // Depending of the logical type, allocate the correct size.
     void *data = duckdb_vector_get_data(*Vector_val(vect));
-    arr = caml_ba_alloc_dims(Int_val(typ)|CAML_BA_C_LAYOUT, 1, data, duckdb_vector_size());
+    arr = caml_ba_alloc_dims(Int_val(typ)|CAML_BA_C_LAYOUT, 1, data, Int_val(len));
     CAMLreturn(arr);
 }
 
