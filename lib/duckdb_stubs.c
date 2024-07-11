@@ -127,8 +127,8 @@ CAMLprim value ml_duckdb_open_ext (value path, value cfg, value len) {
         duckdb_open_ext(NULL, Database_val(x), config, &err);
     duckdb_destroy_config(&config);
     if (ret == DuckDBError) {
-        char *buf = malloc(strlen(err));
-        strncpy(buf, err, strlen(err));
+        char buf[2048];
+        stpncpy(buf, err, 2048);
         duckdb_free(err);
         caml_failwith(buf);
     }
