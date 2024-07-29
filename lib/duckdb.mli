@@ -96,7 +96,8 @@ module DataChunk : sig
   val set_length : _ t -> int -> unit
   val hd : 'v 'a 'b 'rest. ('v * 'a * 'b -> 'rest) t -> ('v, 'a, 'b) Vector.t * 'rest t
 
-  (** [reset t] sets size to zero and resets validity map. *)
+  (** [reset t] sets size to zero and resets validity map. Needs to be
+      called after appending. *)
   val reset : _ t -> unit
 
   (** [free chunk] will free all resources associated with
