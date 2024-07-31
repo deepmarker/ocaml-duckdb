@@ -52,7 +52,7 @@ let scrooge_cmd =
          scrooge path])
 ;;
 
-let memory_usage_test cfg path n =
+let memory_usage_test ?(flush = Int.max_value) cfg path n =
   let module Array = Bigarray.Array1 in
   let db = open_ ~cfg ~path () in
   let con = connect db in
@@ -88,6 +88,7 @@ let memory_usage_test cfg path n =
     done;
     DataChunk.set_length chunk vect_size;
     Appender.append_chunk app chunk;
+    if j mod flush = 0 then Appender.flush app;
     DataChunk.reset chunk
   done;
   DataChunk.free chunk;
@@ -104,12 +105,13 @@ let memory_usage_cmd =
        let () = Logs_async_reporter.set_level_via_param []
        and () = Logs_async_reporter.set_color_via_param ()
        and cfg = flag "cfg" (listed string) ~doc:"CFG Pass cfg to DuckDB"
+       and flush = flag "flush" (optional int) ~doc:"INT Flush every N chunks"
        and path = anon ("path" %: string)
        and n = anon ("n" %: int) in
        fun () ->
          Logs.set_reporter (Logs_async_reporter.reporter ());
          let cfg = List.map cfg ~f:(fun x -> String.lsplit2_exn ~on:'=' x) in
-         memory_usage_test cfg (Fpath.v path) n])
+         memory_usage_test ?flush cfg (Fpath.v path) n])
 ;;
 
 let cmd =
