@@ -372,7 +372,6 @@ module Appender = struct
       -> DataChunk.Binding.t
       -> int
       = "ml_duckdb_append_data_chunk"
-    [@@noalloc]
   end
 
   type 'a t = Binding.t
@@ -398,7 +397,7 @@ end
 external open_ext : string option -> string array -> int -> db = "ml_duckdb_open_ext"
 external connect : db -> con = "ml_duckdb_connect"
 external disconnect : con -> unit = "ml_duckdb_disconnect" [@@noalloc]
-external close : db -> unit = "ml_duckdb_close" [@@noalloc]
+external close : db -> unit = "ml_duckdb_close"
 external query : con -> string -> QResult.Binding.t = "ml_duckdb_query"
 
 let query con str typ =

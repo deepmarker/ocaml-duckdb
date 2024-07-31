@@ -5,6 +5,7 @@
 #include <caml/custom.h>
 #include <caml/fail.h>
 #include <caml/bigarray.h>
+#include <caml/threads.h>
 #include <duckdb.h>
 
 #define Database_val(v) (((duckdb_database *) Data_custom_val(v)))
@@ -117,6 +118,7 @@ CAMLprim value ml_duckdb_open_ext (value path, value cfg, value len) {
     duckdb_config config;
     if (duckdb_create_config(&config) == DuckDBError)
         caml_failwith("cannot create config");
+    caml_release_runtime_system();
     char *err;
     for (int i = 0; i<2*Int_val(len); i+=2) {
         duckdb_set_config(config, String_val(Field(cfg, i)), String_val(Field(cfg, i+1)));
@@ -126,6 +128,7 @@ CAMLprim value ml_duckdb_open_ext (value path, value cfg, value len) {
         duckdb_open_ext(String_val(Some_val(path)), Database_val(x), config, &err) :
         duckdb_open_ext(NULL, Database_val(x), config, &err);
     duckdb_destroy_config(&config);
+    caml_acquire_runtime_system();
     if (ret == DuckDBError) {
         char buf[2048];
         stpncpy(buf, err, 2048);
@@ -154,8 +157,11 @@ CAMLprim value ml_duckdb_disconnect(value con) {
 }
 
 CAMLprim value ml_duckdb_close(value db) {
+    CAMLparam1(db);
+    caml_release_runtime_system();
     duckdb_close(Database_val(db));
-    return Val_unit;
+    caml_acquire_runtime_system();
+    CAMLreturn(Val_unit);
 }
 
 CAMLprim value ml_duckdb_query(value con, value query) {
@@ -212,7 +218,10 @@ CAMLprim value ml_duckdb_appender_create (value con, value sch, value tbl) {
 
 CAMLprim value ml_duckdb_appender_flush(value appender) {
     CAMLparam1(appender);
-    if (duckdb_appender_flush(*Appender_val(appender)) == DuckDBError) {
+    caml_release_runtime_system();
+    duckdb_state res = duckdb_appender_flush(*Appender_val(appender));
+    caml_acquire_runtime_system();
+    if (res == DuckDBError) {
         caml_failwith(duckdb_appender_error(*Appender_val(appender)));
     }
     CAMLreturn(Val_unit);
@@ -262,7 +271,11 @@ CAMLprim value ml_duckdb_append_timestamp(value appender, value i) {
 }
 
 CAMLprim value ml_duckdb_append_data_chunk(value appender, value chunk) {
-    return Val_int(duckdb_append_data_chunk(*Appender_val(appender), *Data_chunk_val((chunk))));
+    CAMLparam2(appender, chunk);
+    caml_release_runtime_system();
+    int res = duckdb_append_data_chunk(*Appender_val(appender), *Data_chunk_val((chunk)));
+    caml_acquire_runtime_system();
+    CAMLreturn(Val_int(res));
 }
 
 /* Logical types interface */
