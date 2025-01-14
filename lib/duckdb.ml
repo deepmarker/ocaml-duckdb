@@ -230,10 +230,10 @@ module Vector = struct
   ;;
 
   let get
-    (type v repr)
-    (t : (v, repr, (repr, 'c) kind) t)
-    (data : (repr, 'b, c_layout) Array1.t)
-    i
+        (type v repr)
+        (t : (v, repr, (repr, 'c) kind) t)
+        (data : (repr, 'b, c_layout) Array1.t)
+        i
     =
     match t.typ with
     | Scalar (repr, _) ->
@@ -243,11 +243,11 @@ module Vector = struct
   ;;
 
   let set
-    (type v repr)
-    (t : (v, repr, (repr, 'c) kind) t)
-    (data : (repr, 'b, c_layout) Array1.t)
-    i
-    x
+        (type v repr)
+        (t : (v, repr, (repr, 'c) kind) t)
+        (data : (repr, 'b, c_layout) Array1.t)
+        i
+        x
     =
     match t.typ with
     | Scalar (repr, _) ->
