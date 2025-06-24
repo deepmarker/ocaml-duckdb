@@ -131,7 +131,7 @@ CAMLprim value ml_duckdb_open_ext (value path, value cfg, value len) {
     caml_acquire_runtime_system();
     if (ret == DuckDBError) {
         char buf[2048];
-        stpncpy(buf, err, 2048);
+        stpncpy(buf, err, 2047);
         duckdb_free(err);
         caml_failwith(buf);
     }
