@@ -1,9 +1,3 @@
 (test
  (name duckdb)
- (libraries
-   core
-   bigdecimal
-   alcotest
-   duckdb
- )
-)
+ (libraries core bigdecimal alcotest duckdb))

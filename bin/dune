@@ -1,9 +1,6 @@
 (executable
  (public_name duckdb)
  (name main)
- (preprocess (pps ppx_jane))
- (libraries
-   core
-   core_unix.command_unix
-   logs-async-reporter
-   duckdb))
+ (preprocess
+  (pps ppx_jane))
+ (libraries core core_unix.command_unix logs-async-reporter duckdb))
